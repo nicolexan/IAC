@@ -1,0 +1,52 @@
+name: Validate Infrastructure 
+run-name: Validating Infrastructure ${{ inputs.lab }}
+
+on:
+    workflow_dispatch:
+        inputs:
+            lab:
+                description: 'Which lab are we validating?'
+                required: true
+                type: choice
+                options:
+                - laufey
+    workflow_call:
+        inputs:
+            lab:
+                description: 'Which lab are we validating?'
+                required: true
+                type: string
+
+jobs:
+    validation:
+        name: Validation
+        runs-on: ubuntu-latest
+        defaults:
+            run:
+                shell: bash
+                working-directory: ./Labs/${{ inputs.lab }}
+        steps:
+        - name: Checkout Repository
+          uses: actions/checkout@v4
+        - name: Terraform Setup
+          uses: hashicorp/setup-terraform@v3
+
+        - name: Terraform Format Check
+          run: terraform fmt -check -recursive
+        
+        - name: Terraform Init
+          run: terraform init
+
+        - name: Terraform Validate
+          run: terraform validate
+
+        - name: TFLint Setup
+          uses: terraform-linters/setup-tflint@v4
+
+        - name: TFLint Test
+          run: |
+            tflint --init
+            tflint
+
+        - name: TFsec Test
+          uses: aquasecurity/tfsec-action@v1.0.0
